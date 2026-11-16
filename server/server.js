@@ -42,7 +42,8 @@ wss.on('connection', (ws, req) => {
     for (const [pid, p] of room.pads) send(ws, { t: 'join', id: pid, name: p.name });
     ws.on('message', (d) => {
       let m; try { m = JSON.parse(d); } catch { return; }
-      for (const [, p] of room.pads) send(p.ws, m); // il PC parla a tutti i telefoni (es. vibrazione)
+      if (m.to) { const p = room.pads.get(m.to); if (p) send(p.ws, m); }
+      else for (const [, p] of room.pads) send(p.ws, m); // senza destinatario: a tutti i telefoni
     });
     ws.on('close', () => { if (room.host === ws) room.host = null; setTimeout(() => { if (!room.host && rooms.get(room.code) === room) { for (const [, p] of room.pads) p.ws.close(); rooms.delete(room.code); } }, 60000); });
   } else if (role === 'pad') {
