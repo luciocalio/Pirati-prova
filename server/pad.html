@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Telecomando pirata</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{margin:0;height:100%;background:#0d1b2e;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#join{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;padding:24px;text-align:center}
+#join h1{margin:0;font-size:26px}
+#join p{margin:0;color:#9db4d0;font-size:15px}
+input{font:inherit;font-size:22px;text-align:center;padding:12px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff;width:230px;text-transform:uppercase;touch-action:auto;-webkit-user-select:text;user-select:text}
+#name{text-transform:none;font-size:18px}
+button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0;border-radius:14px;background:#ff9d2e;color:#2a1600}
+#err{color:#ff8a8a;min-height:20px;font-size:14px}
+#pad{position:fixed;inset:0;display:none}
+#stick{position:absolute;left:6vmin;bottom:8vmin;width:38vmin;height:38vmin;max-width:240px;max-height:240px;min-width:150px;min-height:150px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22)}
+#knob{position:absolute;width:42%;height:42%;left:29%;top:29%;border-radius:50%;background:rgba(255,255,255,.45);border:2px solid rgba(255,255,255,.7)}
+.b{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.04em;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff}
+.b.on{background:rgba(255,255,255,.4)}
+#atk{right:7vmin;bottom:16vmin;width:26vmin;height:26vmin;min-width:110px;min-height:110px;max-width:170px;max-height:170px;background:rgba(255,90,70,.35);border-color:#ff7a66;font-size:18px}
+#dod{right:30vmin;bottom:6vmin;width:19vmin;height:19vmin;min-width:84px;min-height:84px;max-width:125px;max-height:125px;font-size:14px}
+#lck{right:6vmin;bottom:46vmin;width:15vmin;height:15vmin;min-width:70px;min-height:70px;max-width:100px;max-height:100px;font-size:13px}
+#cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
+#cl{left:42%}#cr{left:calc(42% + 16vmin)}
+#st{position:absolute;top:8px;left:12px;font-size:12px;color:#9db4d0}
+#rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0d1b2eee;text-align:center;font-size:20px;z-index:5;padding:30px}
+@media (orientation:portrait){#rot.need{display:flex}}
+</style></head><body>
+<div id="join">
+  <h1>🏴‍☠️ Telecomando</h1>
+  <p>Scrivi il codice che vedi sullo schermo del PC</p>
+  <input id="code" maxlength="4" placeholder="CODICE" autocomplete="off" autocapitalize="characters">
+  <input id="name" maxlength="14" placeholder="Il tuo nome" autocomplete="off">
+  <button class="go" id="go">ENTRA</button>
+  <div id="err"></div>
+</div>
+<div id="pad">
+  <div id="st"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <div class="b" id="cl">◀</div><div class="b" id="cr">▶</div>
+  <div class="b" id="lck">MIRA</div>
+  <div class="b" id="dod">SCHIVA</div>
+  <div class="b" id="atk">ATTACCO</div>
+</div>
+<div id="rot" class="need">Gira il telefono in orizzontale 📱↻</div>
+<script>
+const $=id=>document.getElementById(id);
+const qs=new URLSearchParams(location.search);
+$('code').value=(qs.get('c')||localStorage.getItem('pcode')||'').toUpperCase().slice(0,4);
+$('name').value=localStorage.getItem('pname')||'';
+let ws=null, lat=0, started=false;
+function send(m){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(m)); }
+function connect(){
+  const code=$('code').value.trim().toUpperCase(), name=$('name').value.trim()||'Pirata';
+  if(code.length!==4){ $('err').textContent='Il codice ha 4 lettere'; return; }
+  try{ localStorage.setItem('pcode',code); localStorage.setItem('pname',name); }catch(e){}
+  $('err').textContent='Mi collego…';
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(`${proto}//${location.host}/ws?role=pad&code=${code}&name=${encodeURIComponent(name)}`);
+  ws.onmessage=ev=>{
+    const m=JSON.parse(ev.data);
+    if(m.t==='ok'){ $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
+    else if(m.t==='err'){ $('err').textContent=m.msg; }
+    else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
+    else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
+    else if(m.t==='pong'){ lat=Math.round(performance.now()-m.c); $('st').textContent='ritardo '+lat+' ms'; }
+  };
+  ws.onclose=()=>{ if(started){ $('st').textContent='Connessione persa… riprovo'; setTimeout(()=>{ if(started) connect(); },1200);} };
+}
+$('go').onclick=connect;
+function tryFull(){ try{ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){} }
+setInterval(()=>send({t:'ping',c:performance.now()}),2000);
+const rot=$('rot'); const chk=()=>{ rot.className = (innerHeight>innerWidth && started)?'need':''; rot.style.display=(innerHeight>innerWidth && started)?'flex':'none'; }; addEventListener('resize',chk); chk();
+
+// joystick
+const stick=$('stick'), knob=$('knob'); let sid=null, last='';
+function setStick(e){
+  const r=stick.getBoundingClientRect(), R=r.width/2;
+  let dx=e.clientX-(r.left+R), dy=e.clientY-(r.top+R); const l=Math.hypot(dx,dy), max=R*0.85;
+  if(l>max){dx=dx/l*max;dy=dy/l*max;}
+  knob.style.transform=`translate(${dx}px,${dy}px)`;
+  let x=dx/max, y=-dy/max; const m=Math.hypot(x,y); if(m<0.15){x=0;y=0;}
+  const s=x.toFixed(2)+','+y.toFixed(2); if(s!==last){ last=s; send({t:'mv',x:+x.toFixed(2),y:+y.toFixed(2)}); }
+}
+stick.addEventListener('pointerdown',e=>{ sid=e.pointerId; stick.setPointerCapture(sid); setStick(e); });
+stick.addEventListener('pointermove',e=>{ if(e.pointerId===sid) setStick(e); });
+const endStick=e=>{ if(e.pointerId!==sid) return; sid=null; knob.style.transform=''; last='0.00,0.00'; send({t:'mv',x:0,y:0}); };
+stick.addEventListener('pointerup',endStick); stick.addEventListener('pointercancel',endStick);
+
+// pulsanti
+function btn(id,key,hold){
+  const el=$(id); let pid=null;
+  el.addEventListener('pointerdown',e=>{ pid=e.pointerId; el.setPointerCapture(pid); el.classList.add('on'); send({t:'k',k:key,d:1}); if(!hold) setTimeout(()=>send({t:'k',k:key,d:0}),60); if(navigator.vibrate&&!hold) navigator.vibrate(8); });
+  const up=e=>{ if(e.pointerId!==pid) return; pid=null; el.classList.remove('on'); if(hold) send({t:'k',k:key,d:0}); };
+  el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+}
+btn('atk','KeyJ'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
+document.addEventListener('contextmenu',e=>e.preventDefault());
+if($('code').value.length===4 && qs.get('c')) $('name').focus();
+</script></body></html>
