@@ -11,6 +11,9 @@ html,body{margin:0;height:100%;width:100%;position:fixed;inset:0;overscroll-beha
 input{font:inherit;font-size:22px;text-align:center;padding:12px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff;width:230px;text-transform:uppercase;touch-action:auto;-webkit-user-select:text;user-select:text}
 #name{text-transform:none;font-size:18px}
 button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0;border-radius:14px;background:#ff9d2e;color:#2a1600}
+#wp{display:flex;gap:10px}
+#wp button{font:inherit;font-weight:700;font-size:16px;padding:11px 14px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff}
+#wp button.sel{background:#ffd25a;color:#2a1600;border-color:#ffd25a}
 #err{color:#ff8a8a;min-height:20px;font-size:14px}
 #pad{position:fixed;inset:0;display:none}
 #stick{position:absolute;left:5vw;bottom:9vh;width:52vh;height:52vh;max-width:260px;max-height:260px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22)}
@@ -19,7 +22,6 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
 .b.on{background:rgba(255,255,255,.4);transform:scale(.96)}
 #atk{right:4vw;bottom:7vh;width:44vh;height:44vh;background:rgba(255,90,70,.35);border-color:#ff7a66;font-size:min(5.2vh,24px)}
 #dod{right:calc(4vw + 44vh + 5vh);bottom:3vh;width:32vh;height:32vh;font-size:min(4vh,19px)}
-#fire{right:calc(4vw + 6vh);bottom:calc(7vh + 44vh + 3vh);width:30vh;height:30vh;background:rgba(255,210,90,.28);border-color:#ffd25a;font-size:min(3.8vh,18px)}
 #lck{right:calc(4vw + 44vh + 2vh);bottom:calc(3vh + 32vh + 5vh);width:26vh;height:26vh;font-size:min(3.6vh,17px)}
 #cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
 #cl{left:42%}#cr{left:calc(42% + max(16vmin,72px))}
@@ -31,6 +33,7 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <h1>🏴‍☠️ Telecomando</h1>
   <p>Scrivi il codice che vedi sullo schermo del PC</p>
   <input id="code" maxlength="4" placeholder="CODICE" autocomplete="off" autocapitalize="characters">
+  <div id="wp"><button data-w="sword" class="sel">⚔️ SPADA</button><button data-w="gun">🔫 REVOLVER</button></div>
   <input id="name" maxlength="14" placeholder="Il tuo nome" autocomplete="off">
   <button class="go" id="go">ENTRA</button>
   <div id="err"></div>
@@ -41,7 +44,6 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <div class="b" id="cl">◀</div><div class="b" id="cr">▶</div>
   <div class="b" id="lck">MIRA</div>
   <div class="b" id="dod">SCHIVA</div>
-  <div class="b" id="fire">SPARA</div>
   <div class="b" id="atk">ATTACCO</div>
 </div>
 <div id="rot" class="need">Gira il telefono in orizzontale 📱↻</div>
@@ -51,6 +53,10 @@ const qs=new URLSearchParams(location.search);
 $('code').value=(qs.get('c')||localStorage.getItem('pcode')||'').toUpperCase().slice(0,4);
 $('name').value=localStorage.getItem('pname')||'';
 let ws=null, lat=0, started=false;
+let weapon=localStorage.getItem('pweapon')==='gun'?'gun':'sword';
+function showW(){ for(const b of document.querySelectorAll('#wp button')) b.classList.toggle('sel',b.dataset.w===weapon); }
+for(const b of document.querySelectorAll('#wp button')) b.addEventListener('click',()=>{ weapon=b.dataset.w; try{localStorage.setItem('pweapon',weapon);}catch(e){} showW(); });
+showW();
 function send(m){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(m)); }
 function connect(){
   const code=$('code').value.trim().toUpperCase(), name=$('name').value.trim()||'Pirata';
@@ -58,10 +64,10 @@ function connect(){
   try{ localStorage.setItem('pcode',code); localStorage.setItem('pname',name); }catch(e){}
   $('err').textContent='Mi collego…';
   const proto=location.protocol==='https:'?'wss:':'ws:';
-  ws=new WebSocket(`${proto}//${location.host}/ws?role=pad&code=${code}&name=${encodeURIComponent(name)}`);
+  ws=new WebSocket(`${proto}//${location.host}/ws?role=pad&code=${code}&name=${encodeURIComponent(name)}&w=${weapon}`);
   ws.onmessage=ev=>{
     const m=JSON.parse(ev.data);
-    if(m.t==='ok'){ $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
+    if(m.t==='ok'){ if(weapon==='gun'){ $('atk').textContent='SPARA'; $('atk').style.background='rgba(255,210,90,.3)'; $('atk').style.borderColor='#ffd25a'; } $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
     else if(m.t==='err'){ $('err').textContent=m.msg; }
     else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
     else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
@@ -96,7 +102,7 @@ function btn(id,key,hold){
   const up=e=>{ if(e.pointerId!==pid) return; pid=null; el.classList.remove('on'); if(hold) send({t:'k',k:key,d:0}); };
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
 }
-btn('atk','KeyJ'); btn('fire','KeyF'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
+btn('atk','KeyJ'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
 
 // ---- blocco gesti: niente scroll, zoom, ricarica, menu, tasto indietro
 const guard=e=>{ if(started) e.preventDefault(); };

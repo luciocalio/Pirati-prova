@@ -53,9 +53,10 @@ wss.on('connection', (ws, req) => {
     if (room.pads.size >= 4) { send(ws, { t: 'err', msg: 'Stanza piena (max 4)' }); ws.close(); return; }
     id = nextId++;
     const name = String(q.get('name') || 'Pirata').slice(0, 14);
+    const w = q.get('w') === 'gun' ? 'gun' : 'sword';
     room.pads.set(id, { ws, name });
     send(ws, { t: 'ok', id, name });
-    send(room.host, { t: 'join', id, name });
+    send(room.host, { t: 'join', id, name, w });
     ws.on('message', (d) => {
       let m; try { m = JSON.parse(d); } catch { return; }
       if (m.t === 'ping') { send(ws, { t: 'pong', c: m.c }); return; }
