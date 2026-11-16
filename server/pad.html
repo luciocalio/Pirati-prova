@@ -19,6 +19,7 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
 .b.on{background:rgba(255,255,255,.4);transform:scale(.96)}
 #atk{right:4vw;bottom:7vh;width:44vh;height:44vh;background:rgba(255,90,70,.35);border-color:#ff7a66;font-size:min(5.2vh,24px)}
 #dod{right:calc(4vw + 44vh + 5vh);bottom:3vh;width:32vh;height:32vh;font-size:min(4vh,19px)}
+#fire{right:calc(4vw + 6vh);bottom:calc(7vh + 44vh + 3vh);width:30vh;height:30vh;background:rgba(255,210,90,.28);border-color:#ffd25a;font-size:min(3.8vh,18px)}
 #lck{right:calc(4vw + 44vh + 2vh);bottom:calc(3vh + 32vh + 5vh);width:26vh;height:26vh;font-size:min(3.6vh,17px)}
 #cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
 #cl{left:42%}#cr{left:calc(42% + max(16vmin,72px))}
@@ -40,6 +41,7 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <div class="b" id="cl">◀</div><div class="b" id="cr">▶</div>
   <div class="b" id="lck">MIRA</div>
   <div class="b" id="dod">SCHIVA</div>
+  <div class="b" id="fire">SPARA</div>
   <div class="b" id="atk">ATTACCO</div>
 </div>
 <div id="rot" class="need">Gira il telefono in orizzontale 📱↻</div>
@@ -94,7 +96,7 @@ function btn(id,key,hold){
   const up=e=>{ if(e.pointerId!==pid) return; pid=null; el.classList.remove('on'); if(hold) send({t:'k',k:key,d:0}); };
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
 }
-btn('atk','KeyJ'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
+btn('atk','KeyJ'); btn('fire','KeyF'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
 
 // ---- blocco gesti: niente scroll, zoom, ricarica, menu, tasto indietro
 const guard=e=>{ if(started) e.preventDefault(); };
