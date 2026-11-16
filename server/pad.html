@@ -4,7 +4,7 @@
 <title>Telecomando pirata</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
-html,body{margin:0;height:100%;background:#0d1b2e;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+html,body{margin:0;height:100%;width:100%;position:fixed;inset:0;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;background:#0d1b2e;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 #join{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;padding:24px;text-align:center}
 #join h1{margin:0;font-size:26px}
 #join p{margin:0;color:#9db4d0;font-size:15px}
@@ -13,15 +13,15 @@ input{font:inherit;font-size:22px;text-align:center;padding:12px;border-radius:1
 button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0;border-radius:14px;background:#ff9d2e;color:#2a1600}
 #err{color:#ff8a8a;min-height:20px;font-size:14px}
 #pad{position:fixed;inset:0;display:none}
-#stick{position:absolute;left:6vmin;bottom:8vmin;width:38vmin;height:38vmin;max-width:240px;max-height:240px;min-width:150px;min-height:150px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22)}
+#stick{position:absolute;left:5vw;bottom:9vh;width:52vh;height:52vh;max-width:260px;max-height:260px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22)}
 #knob{position:absolute;width:42%;height:42%;left:29%;top:29%;border-radius:50%;background:rgba(255,255,255,.45);border:2px solid rgba(255,255,255,.7)}
 .b{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.04em;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff}
-.b.on{background:rgba(255,255,255,.4)}
-#atk{right:7vmin;bottom:16vmin;width:26vmin;height:26vmin;min-width:110px;min-height:110px;max-width:170px;max-height:170px;background:rgba(255,90,70,.35);border-color:#ff7a66;font-size:18px}
-#dod{right:30vmin;bottom:6vmin;width:19vmin;height:19vmin;min-width:84px;min-height:84px;max-width:125px;max-height:125px;font-size:14px}
-#lck{right:6vmin;bottom:46vmin;width:15vmin;height:15vmin;min-width:70px;min-height:70px;max-width:100px;max-height:100px;font-size:13px}
+.b.on{background:rgba(255,255,255,.4);transform:scale(.96)}
+#atk{right:4vw;bottom:7vh;width:44vh;height:44vh;background:rgba(255,90,70,.35);border-color:#ff7a66;font-size:min(5.2vh,24px)}
+#dod{right:calc(4vw + 44vh + 5vh);bottom:3vh;width:32vh;height:32vh;font-size:min(4vh,19px)}
+#lck{right:calc(4vw + 44vh + 2vh);bottom:calc(3vh + 32vh + 5vh);width:26vh;height:26vh;font-size:min(3.6vh,17px)}
 #cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
-#cl{left:42%}#cr{left:calc(42% + 16vmin)}
+#cl{left:42%}#cr{left:calc(42% + max(16vmin,72px))}
 #st{position:absolute;top:8px;left:12px;font-size:12px;color:#9db4d0}
 #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0d1b2eee;text-align:center;font-size:20px;z-index:5;padding:30px}
 @media (orientation:portrait){#rot.need{display:flex}}
@@ -95,6 +95,17 @@ function btn(id,key,hold){
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
 }
 btn('atk','KeyJ'); btn('dod','Space'); btn('lck','Tab'); btn('cl','KeyQ',true); btn('cr','KeyE',true);
+
+// ---- blocco gesti: niente scroll, zoom, ricarica, menu, tasto indietro
+const guard=e=>{ if(started) e.preventDefault(); };
+document.addEventListener('touchstart',e=>{ if(started && e.target.tagName!=='INPUT') e.preventDefault(); },{passive:false});
+document.addEventListener('touchmove',guard,{passive:false});
+document.addEventListener('touchend',e=>{ if(started) e.preventDefault(); },{passive:false});
+['gesturestart','gesturechange','gestureend','dblclick','selectstart','dragstart'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));
+document.addEventListener('wheel',guard,{passive:false});
+history.pushState({p:1},'',location.href);
+addEventListener('popstate',()=>{ history.pushState({p:1},'',location.href); });
+addEventListener('beforeunload',e=>{ if(started){ e.preventDefault(); e.returnValue=''; } });
 document.addEventListener('contextmenu',e=>e.preventDefault());
 if($('code').value.length===4 && qs.get('c')) $('name').focus();
 </script></body></html>
