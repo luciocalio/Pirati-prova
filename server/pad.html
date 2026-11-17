@@ -84,6 +84,7 @@ function connect(){
     else if(m.t==='cards'){ showCards(m); }
     else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
     else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
+    else if(m.t==='vib'){ if(navigator.vibrate) navigator.vibrate(m.p); }
     else if(m.t==='pong'){ lat=Math.round(performance.now()-m.c); $('st').textContent='ritardo '+lat+' ms'; }
   };
   ws.onclose=()=>{ if(started){ $('st').textContent='Connessione persa… riprovo'; setTimeout(()=>{ if(started) connect(); },1200);} };
