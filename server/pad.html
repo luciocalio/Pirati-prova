@@ -24,6 +24,13 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
 #rum,#bmb{bottom:calc(7vh + 44vh + 3vh);width:18vh;height:18vh;font-size:min(3vh,14px)}
 #rum{right:4vw;border-color:#8fe3a8;background:rgba(143,227,168,.18)}
 #bmb{right:calc(4vw + 20vh);border-color:#ffb347;background:rgba(255,179,71,.2)}
+#cp{position:fixed;inset:0;display:none;background:rgba(8,10,26,.88);z-index:5;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+#cp h2{margin:0;font-size:min(5vh,22px)}
+#cp .row{display:flex;gap:12px;width:100%;max-width:760px;height:62vh}
+#cp .cd{flex:1;border-radius:14px;border:3px solid #ffd25a;background:#1a1530;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;text-align:center}
+#cp .cd:active{background:#3a2f66}
+#cp .cd b{font-size:min(4.6vh,20px)}#cp .cd span{font-size:min(3.4vh,14px);opacity:.85}
+#cp .tm{width:60%;height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden}#cp .tm div{height:100%;background:#ffd25a;width:100%}
 #dod{right:calc(4vw + 44vh + 5vh);bottom:3vh;width:32vh;height:32vh;font-size:min(4vh,19px)}
 #lck{right:calc(4vw + 44vh + 2vh);bottom:calc(3vh + 32vh + 5vh);width:26vh;height:26vh;font-size:min(3.6vh,17px)}
 #cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
@@ -50,6 +57,7 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <div class="b" id="atk">ATTACCO</div>
   <div class="b" id="rum">RUM</div><div class="b" id="bmb">BOMBA</div>
 </div>
+<div id="cp"><h2>Scegli una carta!</h2><div class="row" id="cprow"></div><div class="tm"><div id="cptm"></div></div></div>
 <div id="rot" class="need">Gira il telefono in orizzontale 📱↻</div>
 <script>
 const $=id=>document.getElementById(id);
@@ -73,6 +81,7 @@ function connect(){
     const m=JSON.parse(ev.data);
     if(m.t==='ok'){ if(weapon==='gun'){ $('atk').textContent='SPARA'; $('atk').style.background='rgba(255,210,90,.3)'; $('atk').style.borderColor='#ffd25a'; } $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
     else if(m.t==='err'){ $('err').textContent=m.msg; }
+    else if(m.t==='cards'){ showCards(m); }
     else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
     else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
     else if(m.t==='pong'){ lat=Math.round(performance.now()-m.c); $('st').textContent='ritardo '+lat+' ms'; }
@@ -99,6 +108,18 @@ stick.addEventListener('pointermove',e=>{ if(e.pointerId===sid) setStick(e); });
 const endStick=e=>{ if(e.pointerId!==sid) return; sid=null; knob.style.transform=''; last='0.00,0.00'; send({t:'mv',x:0,y:0}); };
 stick.addEventListener('pointerup',endStick); stick.addEventListener('pointercancel',endStick);
 
+let cpTimer=null;
+function showCards(m){
+  const cp=$('cp'); clearInterval(cpTimer);
+  if(!m.c){ cp.style.display='none'; return; }
+  const row=$('cprow'); row.innerHTML='';
+  m.c.forEach((c,i)=>{ const d=document.createElement('div'); d.className='cd'; d.innerHTML='<b></b><span></span>'; d.children[0].textContent=c.n; d.children[1].textContent=c.d;
+    d.addEventListener('pointerdown',e=>{ e.preventDefault(); send({t:'k',k:'Digit'+(i+1),d:1}); setTimeout(()=>send({t:'k',k:'Digit'+(i+1),d:0}),60); cp.style.display='none'; clearInterval(cpTimer); if(navigator.vibrate) navigator.vibrate(15); });
+    row.appendChild(d); });
+  cp.style.display='flex'; const t0=performance.now();
+  cpTimer=setInterval(()=>{ const f=1-(performance.now()-t0)/m.ms; $('cptm').style.width=Math.max(0,f*100)+'%'; if(f<=0){ clearInterval(cpTimer); cp.style.display='none'; } },100);
+  if(navigator.vibrate) navigator.vibrate([40,40,40]);
+}
 // pulsanti
 function btn(id,key,hold){
   const el=$(id); let pid=null;
