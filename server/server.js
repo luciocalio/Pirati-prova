@@ -10,7 +10,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const read = (f) => fs.readFileSync(path.join(dir, f));
 const PORT = process.env.PORT || 3000;
 
-const pages = { '/': 'game.html', '/pad': 'pad.html' };
+const pages = { '/': 'game.html', '/pad': 'pad.html', '/porto': 'porto.html' };
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/health') { res.end('ok'); return; }
