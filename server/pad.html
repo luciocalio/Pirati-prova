@@ -9,11 +9,7 @@ html,body{margin:0;height:100%;width:100%;position:fixed;inset:0;overscroll-beha
 #join h1{margin:0;font-size:26px}
 #join p{margin:0;color:#9db4d0;font-size:15px}
 input{font:inherit;font-size:22px;text-align:center;padding:12px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff;width:230px;text-transform:uppercase;touch-action:auto;-webkit-user-select:text;user-select:text}
-#name{text-transform:none;font-size:18px}
 button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0;border-radius:14px;background:#ff9d2e;color:#2a1600}
-#wp{display:flex;gap:10px}
-#wp button{font:inherit;font-weight:700;font-size:16px;padding:11px 14px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff}
-#wp button.sel{background:#ffd25a;color:#2a1600;border-color:#ffd25a}
 #err{color:#ff8a8a;min-height:20px;font-size:14px}
 #pad{position:fixed;inset:0;display:none}
 #stick{position:absolute;left:5vw;bottom:9vh;width:52vh;height:52vh;max-width:260px;max-height:260px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22)}
@@ -36,6 +32,15 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
 #cl,#cr{top:5vmin;width:14vmin;height:14vmin;min-width:60px;min-height:60px;max-width:86px;max-height:86px;font-size:22px;border-radius:16px}
 #cl{left:42%}#cr{left:calc(42% + max(16vmin,72px))}
 #st{position:absolute;top:8px;left:12px;font-size:12px;color:#9db4d0}
+#sl{position:fixed;inset:0;display:none;z-index:6;background:#0d1b2e;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px}
+#sl h2{margin:0;font-size:min(5.5vh,24px)}
+#sl .row{display:flex;gap:12px;width:100%;max-width:820px;height:62vh}
+#sl .opt{flex:1;border-radius:16px;border:4px solid var(--c,#fff);background:color-mix(in srgb,var(--c,#fff) 22%,#0d1b2e);color:#fff;font:inherit;font-weight:800;font-size:min(4.4vh,19px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px;text-align:center}
+#sl .opt small{font-weight:600;font-size:min(3vh,13px);opacity:.85}
+#sl .opt:active{filter:brightness(1.4)}
+#sl .opt.off{opacity:.3;filter:grayscale(1);pointer-events:none}
+#sl .opt.big{font-size:min(7vh,30px)}
+#sl .sm{font:inherit;font-size:16px;padding:10px 18px;border-radius:12px;border:2px solid #2d4a6e;background:#14263d;color:#fff}
 #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0d1b2eee;text-align:center;font-size:20px;z-index:5;padding:30px}
 @media (orientation:portrait){#rot.need{display:flex}}
 </style></head><body>
@@ -43,8 +48,6 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <h1>🏴‍☠️ Telecomando</h1>
   <p>Scrivi il codice che vedi sullo schermo del PC</p>
   <input id="code" maxlength="4" placeholder="CODICE" autocomplete="off" autocapitalize="characters">
-  <div id="wp"><button data-w="sword" class="sel">⚔️ SPADA</button><button data-w="gun">🔫 REVOLVER</button></div>
-  <input id="name" maxlength="14" placeholder="Il tuo nome" autocomplete="off">
   <button class="go" id="go">ENTRA</button>
   <div id="err"></div>
 </div>
@@ -57,18 +60,15 @@ button.go{font:inherit;font-weight:700;font-size:20px;padding:14px 40px;border:0
   <div class="b" id="atk">ATTACCO</div>
   <div class="b" id="rum">RUM</div><div class="b" id="bmb">BOMBA</div>
 </div>
+<div id="sl"></div>
 <div id="cp"><h2>Scegli una carta!</h2><div class="row" id="cprow"></div><div class="tm"><div id="cptm"></div></div></div>
 <div id="rot" class="need">Gira il telefono in orizzontale 📱↻</div>
 <script>
 const $=id=>document.getElementById(id);
 const qs=new URLSearchParams(location.search);
 $('code').value=(qs.get('c')||localStorage.getItem('pcode')||'').toUpperCase().slice(0,4);
-$('name').value=localStorage.getItem('pname')||'';
 let ws=null, lat=0, started=false;
-let weapon=localStorage.getItem('pweapon')==='gun'?'gun':'sword';
-function showW(){ for(const b of document.querySelectorAll('#wp button')) b.classList.toggle('sel',b.dataset.w===weapon); }
-for(const b of document.querySelectorAll('#wp button')) b.addEventListener('click',()=>{ weapon=b.dataset.w; try{localStorage.setItem('pweapon',weapon);}catch(e){} showW(); });
-showW();
+let weapon='sword';
 let pc=null, dc=null;
 function direct(){ return dc&&dc.readyState==='open'; }
 function send(m){ const j=JSON.stringify(m); if(direct()){ dc.send(j); return; } if(ws&&ws.readyState===1) ws.send(j); }
@@ -82,9 +82,9 @@ function rtcOffer(d){
   }catch(e){}
 }
 function connect(){
-  const code=$('code').value.trim().toUpperCase(), name=$('name').value.trim()||'Pirata';
+  const code=$('code').value.trim().toUpperCase(), name='Pirata';
   if(code.length!==4){ $('err').textContent='Il codice ha 4 lettere'; return; }
-  try{ localStorage.setItem('pcode',code); localStorage.setItem('pname',name); }catch(e){}
+  try{ localStorage.setItem('pcode',code); }catch(e){}
   $('err').textContent='Mi collego…';
   const proto=location.protocol==='https:'?'wss:':'ws:';
   ws=new WebSocket(`${proto}//${location.host}/ws?role=pad&code=${code}&name=${encodeURIComponent(name)}&w=${weapon}`);
@@ -94,9 +94,10 @@ function connect(){
 function handleMsg(m){
   {
     if(m.t==='rtc'&&m.d){ if(m.d.sdp) rtcOffer(m.d); else if(m.d.ice&&pc) pc.addIceCandidate(m.d.ice).catch(()=>{}); return; }
-    if(m.t==='ok'){ if(weapon==='gun'){ $('atk').textContent='SPARA'; $('atk').style.background='rgba(255,210,90,.3)'; $('atk').style.borderColor='#ffd25a'; } $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
+    if(m.t==='ok'){ $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
     else if(m.t==='err'){ $('err').textContent=m.msg; }
     else if(m.t==='cards'){ showCards(m); }
+    else if(m.t==='sel'){ showSel(m); }
     else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
     else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
     else if(m.t==='vib'){ if(navigator.vibrate) navigator.vibrate(m.p); }
@@ -104,7 +105,7 @@ function handleMsg(m){
   }
 }
 $('go').onclick=connect;
-function tryFull(){ try{ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){} }
+function tryFull(){ try{ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{}); screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){} }
 setInterval(()=>send({t:'ping',c:performance.now()}),2000);
 const rot=$('rot'); const chk=()=>{ rot.className = (innerHeight>innerWidth && started)?'need':''; rot.style.display=(innerHeight>innerWidth && started)?'flex':'none'; }; addEventListener('resize',chk); chk();
 
@@ -123,6 +124,29 @@ stick.addEventListener('pointermove',e=>{ if(e.pointerId===sid) setStick(e); });
 const endStick=e=>{ if(e.pointerId!==sid) return; sid=null; knob.style.transform=''; last='0.00,0.00'; send({t:'mv',x:0,y:0}); };
 stick.addEventListener('pointerup',endStick); stick.addEventListener('pointercancel',endStick);
 
+const PN=[['Alicca muddicu','rosso','#ff6a5a'],['Rusica ossa','verde','#5fdc84'],['Spazzolina','giallo','#ffd25a'],['Tana a pazza','viola','#c48bff']];
+function showSel(m){
+  const sl=$('sl');
+  if(!m.on){ sl.style.display='none'; if(m.w){ weapon=m.w; if(weapon==='gun'){ $('atk').textContent='SPARA'; $('atk').style.background='rgba(255,210,90,.3)'; $('atk').style.borderColor='#ffd25a'; } } return; }
+  const act=a=>send(Object.assign({t:'sel'},a));
+  sl.style.display='flex'; sl.innerHTML='';
+  const h=document.createElement('h2'), row=document.createElement('div'); row.className='row';
+  const mk=(txt,sub,c,fn,cls)=>{ const b=document.createElement('button'); b.className='opt'+(cls?' '+cls:''); b.style.setProperty('--c',c); b.innerHTML=txt+(sub?'<small>'+sub+'</small>':''); b.onclick=fn; row.appendChild(b); return b; };
+  if(m.lock){
+    const P=PN[m.me]||PN[0]; h.textContent='Sei pronto!';
+    mk(P[0],(m.w==='gun'?'REVOLVER':'SPADA')+' · aspetta gli altri',P[2],()=>{},'big');
+    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='Cambia'; c.onclick=()=>act({a:'back'}); sl.appendChild(c);
+  } else if(m.step){
+    const P=PN[m.me]||PN[0]; h.textContent=P[0]+': scegli l\'arma';
+    mk('⚔️ SPADA','corpo a corpo',P[2],()=>act({a:'wpn',w:'sword'}),'big');
+    mk('🔫 REVOLVER','a distanza',P[2],()=>act({a:'wpn',w:'gun'}),'big');
+    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='◀ cambia pirata'; c.onclick=()=>act({a:'back'}); sl.appendChild(c);
+  } else {
+    h.textContent='Scegli il tuo pirata';
+    PN.forEach((P,i)=>{ const b=mk(P[0],m.taken&&m.taken[i]?'preso':P[1],P[2],()=>act({a:'pick',s:i})); if(m.taken&&m.taken[i]) b.classList.add('off'); });
+    sl.append(h,row);
+  }
+}
 let cpTimer=null;
 function showCards(m){
   const cp=$('cp'); clearInterval(cpTimer);
@@ -155,5 +179,5 @@ history.pushState({p:1},'',location.href);
 addEventListener('popstate',()=>{ history.pushState({p:1},'',location.href); });
 addEventListener('beforeunload',e=>{ if(started){ e.preventDefault(); e.returnValue=''; } });
 document.addEventListener('contextmenu',e=>e.preventDefault());
-if($('code').value.length===4 && qs.get('c')) $('name').focus();
+
 </script></body></html>
