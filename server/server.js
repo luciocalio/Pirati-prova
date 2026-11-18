@@ -26,7 +26,7 @@ const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => LETTERS[
 let nextId = 1;
 const send = (ws, m) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
 
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 2048 });
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16384 });
 wss.on('connection', (ws, req) => {
   const q = new URL(req.url, 'http://x').searchParams;
   const role = q.get('role');

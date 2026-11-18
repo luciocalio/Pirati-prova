@@ -69,7 +69,18 @@ let weapon=localStorage.getItem('pweapon')==='gun'?'gun':'sword';
 function showW(){ for(const b of document.querySelectorAll('#wp button')) b.classList.toggle('sel',b.dataset.w===weapon); }
 for(const b of document.querySelectorAll('#wp button')) b.addEventListener('click',()=>{ weapon=b.dataset.w; try{localStorage.setItem('pweapon',weapon);}catch(e){} showW(); });
 showW();
-function send(m){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(m)); }
+let pc=null, dc=null;
+function direct(){ return dc&&dc.readyState==='open'; }
+function send(m){ const j=JSON.stringify(m); if(direct()){ dc.send(j); return; } if(ws&&ws.readyState===1) ws.send(j); }
+function rtcOffer(d){
+  try{
+    if(pc){ try{pc.close();}catch(e){} }
+    pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]}); dc=null;
+    pc.ondatachannel=e=>{ dc=e.channel; dc.onmessage=ev=>handleMsg(JSON.parse(ev.data)); dc.onclose=()=>{ dc=null; }; };
+    pc.onicecandidate=e=>{ if(e.candidate&&ws&&ws.readyState===1) ws.send(JSON.stringify({t:'rtc',d:{ice:e.candidate}})); };
+    pc.setRemoteDescription(d.sdp).then(()=>pc.createAnswer()).then(a=>pc.setLocalDescription(a)).then(()=>{ ws.send(JSON.stringify({t:'rtc',d:{sdp:pc.localDescription}})); }).catch(()=>{});
+  }catch(e){}
+}
 function connect(){
   const code=$('code').value.trim().toUpperCase(), name=$('name').value.trim()||'Pirata';
   if(code.length!==4){ $('err').textContent='Il codice ha 4 lettere'; return; }
@@ -77,17 +88,20 @@ function connect(){
   $('err').textContent='Mi collego…';
   const proto=location.protocol==='https:'?'wss:':'ws:';
   ws=new WebSocket(`${proto}//${location.host}/ws?role=pad&code=${code}&name=${encodeURIComponent(name)}&w=${weapon}`);
-  ws.onmessage=ev=>{
-    const m=JSON.parse(ev.data);
+  ws.onmessage=ev=>handleMsg(JSON.parse(ev.data));
+  ws.onclose=()=>{ if(started){ $('st').textContent='Connessione persa… riprovo'; setTimeout(()=>{ if(started) connect(); },1200);} };
+}
+function handleMsg(m){
+  {
+    if(m.t==='rtc'&&m.d){ if(m.d.sdp) rtcOffer(m.d); else if(m.d.ice&&pc) pc.addIceCandidate(m.d.ice).catch(()=>{}); return; }
     if(m.t==='ok'){ if(weapon==='gun'){ $('atk').textContent='SPARA'; $('atk').style.background='rgba(255,210,90,.3)'; $('atk').style.borderColor='#ffd25a'; } $('join').style.display='none'; $('pad').style.display='block'; started=true; tryFull(); }
     else if(m.t==='err'){ $('err').textContent=m.msg; }
     else if(m.t==='cards'){ showCards(m); }
     else if(m.t==='hurt'){ if(navigator.vibrate) navigator.vibrate(120); }
     else if(m.t==='hit'){ if(navigator.vibrate) navigator.vibrate(25); }
     else if(m.t==='vib'){ if(navigator.vibrate) navigator.vibrate(m.p); }
-    else if(m.t==='pong'){ lat=Math.round(performance.now()-m.c); $('st').textContent='ritardo '+lat+' ms'; }
-  };
-  ws.onclose=()=>{ if(started){ $('st').textContent='Connessione persa… riprovo'; setTimeout(()=>{ if(started) connect(); },1200);} };
+    else if(m.t==='pong'){ lat=Math.round(performance.now()-m.c); $('st').textContent='ritardo '+lat+' ms'+(direct()?' (diretto)':''); }
+  }
 }
 $('go').onclick=connect;
 function tryFull(){ try{ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){} }
