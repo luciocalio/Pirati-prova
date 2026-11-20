@@ -131,16 +131,16 @@ function showSel(m){
   const act=a=>send(Object.assign({t:'sel'},a));
   sl.style.display='flex'; sl.innerHTML='';
   const h=document.createElement('h2'), row=document.createElement('div'); row.className='row';
-  const mk=(txt,sub,c,fn,cls)=>{ const b=document.createElement('button'); b.className='opt'+(cls?' '+cls:''); b.style.setProperty('--c',c); b.innerHTML=txt+(sub?'<small>'+sub+'</small>':''); b.onclick=fn; row.appendChild(b); return b; };
+  const mk=(txt,sub,c,fn,cls)=>{ const b=document.createElement('button'); b.className='opt'+(cls?' '+cls:''); b.style.setProperty('--c',c); b.innerHTML=txt+(sub?'<small>'+sub+'</small>':''); b.addEventListener('pointerdown',e=>{ e.preventDefault(); if(navigator.vibrate) navigator.vibrate(12); fn(); }); row.appendChild(b); return b; };
   if(m.lock){
     const P=PN[m.me]||PN[0]; h.textContent='Sei pronto!';
     mk(P[0],(m.w==='gun'?'REVOLVER':'SPADA')+' · aspetta gli altri',P[2],()=>{},'big');
-    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='Cambia'; c.onclick=()=>act({a:'back'}); sl.appendChild(c);
+    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='Cambia'; c.addEventListener('pointerdown',e=>{ e.preventDefault(); act({a:'back'}); }); sl.appendChild(c);
   } else if(m.step){
     const P=PN[m.me]||PN[0]; h.textContent=P[0]+': scegli l\'arma';
     mk('⚔️ SPADA','corpo a corpo',P[2],()=>act({a:'wpn',w:'sword'}),'big');
     mk('🔫 REVOLVER','a distanza',P[2],()=>act({a:'wpn',w:'gun'}),'big');
-    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='◀ cambia pirata'; c.onclick=()=>act({a:'back'}); sl.appendChild(c);
+    sl.append(h,row); const c=document.createElement('button'); c.className='sm'; c.textContent='◀ cambia pirata'; c.addEventListener('pointerdown',e=>{ e.preventDefault(); act({a:'back'}); }); sl.appendChild(c);
   } else {
     h.textContent='Scegli il tuo pirata';
     PN.forEach((P,i)=>{ const b=mk(P[0],m.taken&&m.taken[i]?'preso':P[1],P[2],()=>act({a:'pick',s:i})); if(m.taken&&m.taken[i]) b.classList.add('off'); });
